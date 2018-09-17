@@ -1,0 +1,5 @@
+type: bilstm-rnn
+vargs:
+  dropout: 0
+  dynamic: false
+  layers: 2
