@@ -1,4 +1,5 @@
 import json
+import logging
 import argparse
 
 import torchmodels
@@ -7,20 +8,22 @@ from . import manager
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--package", required=True)
-parser.add_argument("--module-name", type=str, default=None)
+parser.add_argument("--root-package")
+parser.add_argument("--module-name", required=True)
 parser.add_argument("--save-path", required=True)
 parser.add_argument("--format", type=str, default="yaml",
                     choices=["yaml", "json"])
+parser.add_argument("--debug", action="store_true", default=False)
 
 
 def save_template(args):
-    pkg = utils.import_module(args.package)
-    if args.module_name is not None:
-        clsmap = manager.get_module_dict(pkg)
-        cls = clsmap.get(args.module_name)
-    else:
-        cls = manager.get_module_classes(pkg)[0]
+    if args.root_package is not None:
+        pkg = utils.import_module(args.root_package)
+        manager.register_packages(pkg)
+    clsmap = manager.get_module_dict()
+    cls = clsmap.get(args.module_name)
+    assert cls is not None, \
+        f"module of name '{args.module_name}' not found."
     template = {
         "type": cls.name,
         "vargs": torchmodels.get_optarg_template(cls)
@@ -35,4 +38,6 @@ def save_template(args):
 
 if __name__ == "__main__":
     args, _ = parser.parse_known_args()
+    if args.debug:
+        logging.basicConfig(level=0)
     save_template(args)

@@ -7,14 +7,13 @@ from . import common
 from . import modules
 
 
-_KNOWN_PACKAGES = {}
+_KNOWN_PACKAGES = set()
 _CLSMAP_CACHE = None
 
 
 def _enum_packages(parent):
     for _, pkgname, ispkg in pkgutil.iter_modules(parent.__path__):
-        if ispkg:
-            yield utils.import_module(f"{parent.__name__}.{pkgname}")
+        yield utils.import_module(f"{parent.__name__}.{pkgname}")
 
 
 def _is_module_class(item):

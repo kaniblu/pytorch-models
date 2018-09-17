@@ -1,6 +1,6 @@
 import torch.nn.functional as tf
 
-from . import common
+from .. import common
 
 
 class AbstractActivation(common.Module):

@@ -1,7 +1,7 @@
 from setuptools import setup
 
 
-__VERSION__ = "0.1"
+__VERSION__ = "0.1.6"
 
 setup(
     name="pytorch-models",
@@ -11,7 +11,10 @@ setup(
     author="Kang Min Yoo",
     author_email="kaniblurous@gmail.com",
     url="https://github.com/kaniblu/pytorch-models",
-    packages=["torchmodels"],
+    packages=[
+        "torchmodels",
+        "torchmodels.modules"
+    ],
     classifiers=[
         "Environment :: Console",
         "Intended Audience :: Developers",

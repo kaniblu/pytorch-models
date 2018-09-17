@@ -6,7 +6,7 @@ from .common import Sequential
 from .common import Linear
 from .common import Identity
 from .common import ModuleList
-from .common import AmbidextrousModule
+from .common import MultiModule
 from .common import Parameter
 from .manager import register_packages
 from .manager import get_module_dict
@@ -41,7 +41,10 @@ def get_optarg_template(cls: common.Module):
             sample = optarg.default
         if common.is_module_cls(sample):
             pkg = sample.get_package()
-            cls = manager.get_module_classes(pkg)[0]
+            classes = manager.get_module_classes(pkg)
+            assert classes, \
+                f"no available modules found for package '{pkg}'"
+            cls = classes[0]
             val = {"type": cls.name}
             args = get_optarg_template(cls)
             if args:

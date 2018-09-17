@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
-import utils
-from . import common
+from .. import utils
+from .. import common
 
 
 class AbstractEmbedding(common.Module):

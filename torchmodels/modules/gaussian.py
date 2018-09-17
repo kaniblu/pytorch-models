@@ -3,7 +3,7 @@ import torch
 from .. import common
 
 
-class AbstractGaussianSampling(common.AmbidextrousModule):
+class AbstractGaussianSampling(common.MultiModule):
     def __init__(self, in_dim, out_dim):
         super(AbstractGaussianSampling, self).__init__()
         self.in_dim = in_dim
@@ -44,7 +44,7 @@ class ReparamGaussianSampling(AbstractGaussianSampling):
     def kld_loss(mu, logvar):
         return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), 1)
 
-    def forward_loss(self, x):
+    def forward_multi(self, x):
         mu = self.mu_linear(x)
         lv = self.lv_linear(x)
         yield "pass", self.sample(mu, lv)

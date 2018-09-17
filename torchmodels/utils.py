@@ -1,11 +1,13 @@
 import sys
 import yaml
+import logging
 import importlib
 
 import torch
 
 
 def import_module(pkg_name, relative_to=None):
+    logging.debug(f"importing '{pkg_name}' under '{relative_to}'")
     if relative_to is not None:
         full_name = f"{relative_to.__name__}.pkg_name"
     else:
@@ -74,3 +76,9 @@ def dump_yaml(obj, stream=None):
             dump(obj, f)
     else:
         dump(obj, stream)
+
+
+def assert_oneof(item, candidates, name=None):
+    assert item in candidates, \
+        (f"'{name}' " if name is not None else "") + \
+        f"is not one of '{candidates}'. item given: {item}"

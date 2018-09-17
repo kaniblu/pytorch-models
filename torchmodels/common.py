@@ -204,8 +204,8 @@ class Module(nn.Module):
         recursively_reset_parameters(self)
 
 
-class AmbidextrousModule(Module):
-    """Ambidextrous Module for Side-tracking Losses
+class MultiModule(Module):
+    """Multi-Module for Side-tracking Losses
 
     This extension allows modules to create losses in addition to the standard
     forward-returns. All modules will automatically cumulate loss items
@@ -225,15 +225,15 @@ class AmbidextrousModule(Module):
             ret = ret.get("pass")
         return ret
 
-    def forward(self, *input):
+    def forward_multi(self, *input):
         # yield "loss", 0
         # yield "pass", 0
         # return <pass>
         raise NotImplementedError()
 
-    def forward_multi(self, *input):
+    def forward(self, *input):
         self.loss = None
-        ret = self.forward(*input)
+        ret = self.forward_multi(*input)
         if isinstance(ret, types.GeneratorType):
             ret = dict(ret)
             pss = ret.get("pass")
