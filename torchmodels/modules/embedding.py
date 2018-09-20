@@ -1,3 +1,8 @@
+"""
+This package provides enhanced Embedding modules such as fine-tunable embeddings
+in which each embedding can be excluded or included in the gradient graph.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -7,6 +12,7 @@ from .. import common
 
 
 class AbstractEmbedding(common.Module):
+
     def __init__(self, vocab_size, dim):
         super(AbstractEmbedding, self).__init__()
         self.vocab_size = vocab_size
@@ -24,6 +30,7 @@ class AbstractEmbedding(common.Module):
 
 
 class TorchEmbedding(nn.Embedding):
+
     def reset_parameters(self):
         init.xavier_normal_(self.weight.detach())
         if self.padding_idx is not None:
@@ -31,6 +38,7 @@ class TorchEmbedding(nn.Embedding):
 
 
 class BasicEmbedding(AbstractEmbedding):
+
     name = "basic-embedding"
 
     def __init__(self, *args, allow_padding=False, **kwargs):
@@ -72,6 +80,7 @@ def index_map(x, idx):
 
 
 class FineTunableEmbedding(AbstractEmbedding):
+
     name = "finetunable-embedding"
 
     def __init__(self, *args, allow_padding=False, freeze=False,

@@ -1,3 +1,5 @@
+__version__ = "0.1.7"
+
 from . import utils
 from . import common
 from . import manager
@@ -14,18 +16,40 @@ from .manager import get_module_classes
 from .manager import get_module_names
 
 
-
-def create_model_cls(package, model_path=None):
+def create_model_cls(package=None, model_path=None, name=None, modargs=None):
+    """
+    Create a model-initializing function that accepts positional arguments.
+    :param package:
+        the package to search for the model. If none given, all
+        known packages will be searched.
+    :param model_path:
+        yaml file path that contains keyword-only arguments.
+    :param name:
+        model name to search for. If no model path is specified, this
+        option will be used.
+    :param modargs:
+        keyword-only module arguments to initialize the function.
+    :return:
+        function
+    """
     if model_path is None:
-        model_cls = manager.get_module_classes(package)[0]
-        modargs = get_optarg_template(model_cls)
+        if name is None:
+            classes = manager.get_module_classes(package)
+            assert len(classes) > 0, \
+                f"no modules found in package " \
+                f"'{package if package is not None else 'all'}"
+            name = classes[0].name
+            modargs = get_optarg_template(classes[0])
+        if modargs is None:
+            modargs = dict()
     else:
-        namemap = manager.get_module_dict(package)
         opts = utils.load_yaml(model_path)
         name, modargs = opts.get("type"), opts.get("vargs")
-        assert name in namemap, \
-            f"module name does not exist: '{name}'"
-        model_cls = namemap[name]
+    namemap = manager.get_module_dict(package)
+    assert name in namemap, \
+        f"module name '{name}' does not exist. available names: " \
+        f"{list(namemap.keys())}"
+    model_cls = namemap[name]
     caster = common.get_caster(model_cls)
     return caster({
         "type": model_cls.name,

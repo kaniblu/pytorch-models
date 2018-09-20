@@ -12,6 +12,7 @@ _CLSMAP_CACHE = None
 
 
 def _enum_packages(parent):
+    yield parent
     for _, pkgname, ispkg in pkgutil.iter_modules(parent.__path__):
         yield utils.import_module(f"{parent.__name__}.{pkgname}")
 

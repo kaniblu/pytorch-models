@@ -1,43 +1,42 @@
 """
 Pooling is the basic operation that maps a tensor of size [batch_size, k, dim]
-to [batch_size, dim]
+to [batch_size, dim]. This package contains pooling implementations for when
+k is variable.
 """
+
 import torch
 
 from torchmodels import utils
 from torchmodels import common
 
 
-class BasePooling(common.Module):
+class AbstractPooling(common.Module):
+
     def __init__(self, dim):
-        super(BasePooling, self).__init__()
+        super(AbstractPooling, self).__init__()
         self.dim = dim
 
     def forward(self, x, lens=None):
         raise NotImplementedError()
 
 
-class MaxPooling(BasePooling):
-    name = "max-pool"
+class MaxPooling(AbstractPooling):
+
+    name = "max-pooling"
 
     def pool(self, x):
         return x.max(1)[0]
 
-    def pool_dynamic(self, x, mask):
-        mask = mask.unsqueeze(-1).float()
-        x = x * mask + (-mask + 1) * float("-inf")
+    def forward(self, x, lens=None):
+        if lens is not None:
+            mask = utils.mask(lens, x.size(1)).unsqueeze(-1)
+            x = x.masked_fill(1 - mask, float("-inf"))
         return self.pool(x)
 
-    def forward(self, x, lens=None):
-        max_len = x.size(1)
-        if lens is not None:
-            return self.pool_dynamic(x, utils.mask(lens, max_len))
-        else:
-            return self.pool(x)
 
+class SumPooling(AbstractPooling):
 
-class SumPooling(BasePooling):
-    name = "sum-pool"
+    name = "sum-pooling"
 
     def pool(self, x):
         return x.sum(1)
@@ -47,26 +46,26 @@ class SumPooling(BasePooling):
         return self.pool(x * mask)
 
     def forward(self, x, lens=None):
-        max_len = x.size(1)
         if lens is not None:
-            return self.pool_dynamic(x, utils.mask(lens, max_len))
-        else:
-            return self.pool(x)
+            mask = utils.mask(lens, x.size(1)).unsqueeze(-1)
+            x *= mask.float()
+        return self.pool(x)
 
 
-class MeanPooling(BasePooling):
-    name = "mean-pool"
+class MeanPooling(AbstractPooling):
+
+    name = "mean-pooling"
 
     def forward(self, x, lens=None):
-        max_len = x.size(1)
         if lens is None:
             return x.mean(1)
-        mask = utils.mask(lens, max_len).unsqueeze(-1).float()
+        mask = utils.mask(lens, x.size(1)).unsqueeze(-1).float()
         return (x * mask).sum(1) / lens.unsqueeze(-1).float()
 
 
-class LastPooling(BasePooling):
-    name = "last-pool"
+class LastPooling(AbstractPooling):
+
+    name = "last-pooling"
 
     def forward(self, x, lens=None):
         if lens is None:

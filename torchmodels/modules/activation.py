@@ -4,11 +4,13 @@ from .. import common
 
 
 class AbstractActivation(common.Module):
+
     def forward(self, x):
         raise NotImplementedError()
 
 
 class ReluActivation(AbstractActivation):
+
     name = "relu-activation"
 
     def forward(self, x):
@@ -16,13 +18,15 @@ class ReluActivation(AbstractActivation):
 
 
 class TanhActivation(AbstractActivation):
+
     name = "tanh-activation"
 
     def forward(self, x):
         return tf.tanh(x)
 
 
-class SigmoidActivation(AbstractActivation):
+class SigmoidActivation(AbstractActivation)\
+        :
     name = "sigmoid-activation"
 
     def forward(self, x):
