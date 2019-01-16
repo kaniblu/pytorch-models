@@ -1,6 +1,6 @@
 import tqdm
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as tfunc
 
 
 class ModuleTester(object):
@@ -40,16 +40,15 @@ class ModuleTester(object):
                 model.reset_parameters()
                 input = torch.randn(self.batch_size, self.input_dim)
                 output = model(input)
-                self.check_tensor(output, size=(self.batch_size, self.input_dim))
+                self.check_tensor(
+                    x=output,
+                    size=(self.batch_size, self.input_dim)
+                )
 
     def test_backward(self):
-        r"""Tests the model whether it can be trained to learn a simple but noisy
-        dataset. The provided model class must be initializable with the input and
-        output dimensions.
-
-        Args:
-            model_cls (Module): A module class that can be initialized with input
-                and output dimensions.
+        r"""Tests the model whether it can be trained to learn a simple but
+        noisy dataset. The provided model class must be initializable with the
+        input and output dimensions.
         """
 
         model = self.mod_cls(self.input_dim, 2)
@@ -63,7 +62,7 @@ class ModuleTester(object):
                 op.zero_grad()
                 data = torch.randint(0, 2, (self.batch_size, self.input_dim))
                 data = data.float()
-                loss = F.cross_entropy(model(data), data[:, 0].long())
+                loss = tfunc.cross_entropy(model(data), data[:, 0].long())
                 self.check_tensor(loss)
                 loss.backward()
                 loss = loss.item()
@@ -76,5 +75,7 @@ class ModuleTester(object):
             f"training through backpropagation failed (loss @ {loss:.3f})"
 
     def __repr__(self):
+        inst = self.mod_cls(1, 1)
         repr = f"<ModuleTester for {inst}>"
+        del inst
         return repr

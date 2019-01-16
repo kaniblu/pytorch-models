@@ -8,7 +8,6 @@ from .. import common
 
 
 class AbstractAttention(common.Module):
-
     r"""An abstract class for attention operations. An attention operation
     takes a pair of query vectors and key vectors and produces attended key
     vectors. For each item in the mini-batch, i-th attended output vector must
@@ -27,7 +26,7 @@ class AbstractAttention(common.Module):
 
     Minimum Args:
         qry_dim (int): Dimension of the query vectors
-        val_dim (int): Dimension of the key/value vectors (they're the same here)
+        val_dim (int): Dimension of the key/value vectors (they're the same)
 
     Examples::
 
@@ -61,8 +60,7 @@ class AbstractAttention(common.Module):
 
 
 class ScaledDotProductOperation(common.Module):
-
-    "arXiv:1706.03762"
+    """arXiv:1706.03762"""
 
     def __init__(self):
         super(ScaledDotProductOperation, self).__init__()
@@ -85,7 +83,6 @@ class ScaledDotProductOperation(common.Module):
 
 
 class MultiplicativeAttention(AbstractAttention):
-
     name = "multiplicative"
 
     def __init__(self, *args, hidden_dim=300, **kwargs):

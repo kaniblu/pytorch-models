@@ -10,9 +10,11 @@ class AbstractNonlinear(common.Module):
             out_dim = in_dim
         self.in_dim, self.out_dim = in_dim, out_dim
 
+    def forward(self, x):
+        raise NotImplementedError
+
 
 class SimpleNonlinear(AbstractNonlinear):
-
     name = "simple"
 
     def __init__(self, *args,
@@ -29,7 +31,6 @@ class SimpleNonlinear(AbstractNonlinear):
 
 
 class GatedTanhNonlinear(AbstractNonlinear):
-
     name = "gated-tanh"
 
     def __init__(self, *args, **kwargs):

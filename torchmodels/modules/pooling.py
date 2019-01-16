@@ -1,11 +1,8 @@
-import torch
-
 from torchmodels import utils
 from torchmodels import common
 
 
 class AbstractPooling(common.Module):
-
     r"""An abstract class for pooling operations. A pooling operation
     takes variable number of vectors and produces a single vector of the same
     dimensions using some form of aggregation. Supports variable numbers of
@@ -44,7 +41,6 @@ class AbstractPooling(common.Module):
 
 
 class MaxPooling(AbstractPooling):
-
     name = "max"
 
     def forward(self, x, lens=None):
@@ -55,7 +51,6 @@ class MaxPooling(AbstractPooling):
 
 
 class SumPooling(AbstractPooling):
-
     name = "sum"
 
     def forward(self, x, lens=None):
@@ -66,7 +61,6 @@ class SumPooling(AbstractPooling):
 
 
 class MeanPooling(AbstractPooling):
-
     name = "mean"
 
     def forward(self, x, lens=None):
@@ -78,7 +72,6 @@ class MeanPooling(AbstractPooling):
 
 
 class LastPooling(AbstractPooling):
-
     name = "last"
 
     def forward(self, x, lens=None):

@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 
 from .. import common
 
@@ -11,7 +10,6 @@ class AbstractActivation(common.Module):
 
 
 class ReluActivation(AbstractActivation):
-
     name = "relu"
 
     def forward(self, x):
@@ -19,7 +17,6 @@ class ReluActivation(AbstractActivation):
 
 
 class TanhActivation(AbstractActivation):
-
     name = "tanh"
 
     def forward(self, x):
@@ -27,7 +24,6 @@ class TanhActivation(AbstractActivation):
 
 
 class SigmoidActivation(AbstractActivation):
-
     name = "sigmoid"
 
     def forward(self, x):

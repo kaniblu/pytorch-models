@@ -113,8 +113,9 @@ class OptionalArgument(object):
         self.default = default
 
     def __call__(self, value=None):
-        """consumes any acceptable form of value and returns typed value compatible
-        with the argument"""
+        """consumes any acceptable form of value and
+        returns typed value compatible with the argument
+        """
         if value is None:
             return self.default
         if self.islist:
@@ -136,7 +137,6 @@ def nullable_add(a, b):
 
 
 class Module(nn.Module):
-
     r"""A base module class for managing module parameters.
 
     All module classes whose initializing parameters need to be managed must
@@ -211,14 +211,14 @@ class Module(nn.Module):
 
 
 class MultiModule(Module):
-
     """A base class for implementing modules that return multiple values
 
-    This extension allows modules to generate losses in addition to the standard
-    forward-returns. All modules will automatically cumulate loss items
-    from their own children and return the total loss to their calling modules.
-    Ordinary modules cannot call MultiModule but the reverse is possible.
-    Implement `forward_multi` instead of the standard `forward` method.
+    This extension allows modules to generate losses in addition to the
+    standard forward-returns. All modules will automatically cumulate loss
+    items from their own children and return the total loss to their calling
+    modules. Ordinary modules cannot call MultiModule but the reverse is
+    possible. Implement `forward_multi` instead of the standard `forward`
+    method.
 
     Take a note of the following example:
 

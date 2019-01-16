@@ -14,7 +14,6 @@ class AbstractMLP(torchmodels.Module):
 
 
 class MLP(AbstractMLP):
-
     name = "mlp"
 
     def __init__(self, *args, hidden_dim=300, num_layers=2,
@@ -24,12 +23,13 @@ class MLP(AbstractMLP):
         self.num_layers = num_layers
         self.nonlinear_cls = nonlinear
 
-        self.input_layer = torchmodels.Linear(self.input_dim, self.hidden_dim)
+        linear = torchmodels.Linear
+        self.input_layer = linear(self.input_dim, self.hidden_dim)
         self.hidden_layers = torchmodels.Sequential(
             *[self.nonlinear_cls(self.hidden_dim, self.hidden_dim)
               for _ in range(self.num_layers)]
         )
-        self.output_layer = torchmodels.Linear(self.hidden_dim, self.output_dim)
+        self.output_layer = linear(self.hidden_dim, self.output_dim)
 
     def forward(self, x):
         return self.output_layer(self.hidden_layers(self.input_layer(x)))

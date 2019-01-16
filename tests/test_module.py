@@ -1,5 +1,4 @@
 import os
-import random
 
 import torch
 import torch.nn as nn
@@ -16,7 +15,6 @@ from . import custom_modules
 from .custom_modules import mlp
 from .module_tester import ModuleTester
 
-
 YAML_PATHS = [
     os.path.join(os.path.dirname(__file__), "rnn.yml"),
     os.path.join(os.path.dirname(__file__), "mlp.yml")
@@ -29,9 +27,7 @@ def _test_package(pkg, test_fn):
 
 
 def _test_attention(name, cls):
-
     class Model(torchmodels.Module):
-
         num_qrys = 16
         max_keys = 16
 
@@ -49,7 +45,8 @@ def _test_attention(name, cls):
             batch_size = x.size(0)
             qrys = self.qry_linear(x).view(batch_size, self.num_qrys, -1)
             keys = self.key_linear(x).view(batch_size, self.max_keys, -1)
-            num_keys = torch.randint(1, self.max_keys + 1, (batch_size,)).long()
+            num_keys = torch.randint(1, self.max_keys + 1, (batch_size,))
+            num_keys = num_keys.long()
             mask = utils.mask(num_keys, self.max_keys).byte()
             keys = keys.masked_fill(1 - mask.unsqueeze(-1), float("nan"))
 
@@ -72,7 +69,6 @@ def test_attention():
 
 
 def _test_activation(name, cls):
-
     class Model(torchmodels.Module):
 
         def __init__(self, in_dim, out_dim, hidden_dim=100):
@@ -102,9 +98,7 @@ def test_activation():
 
 
 def _test_rnn(name, cls):
-
     class Model(torchmodels.Module):
-
         max_len = 8
 
         def __init__(self, in_dim, out_dim, hidden_dim=100):
@@ -122,7 +116,7 @@ def _test_rnn(name, cls):
         def forward(self, x):
             batch_size, max_len = x.size(0), self.max_len
             x = self.in_linear(x).view(batch_size, max_len, -1)
-            lens = torch.randint(1, max_len + 1, (batch_size, )).long()
+            lens = torch.randint(1, max_len + 1, (batch_size,)).long()
             lens = lens.to(x)
             mask = utils.mask(lens, max_len)
             x = x.masked_fill(1 - mask.unsqueeze(-1), float("nan"))
@@ -143,9 +137,7 @@ def test_rnn():
 
 
 def _test_pooling(name, cls):
-
     class Model(torchmodels.Module):
-
         max_len = 8
 
         def __init__(self, in_dim, out_dim):
@@ -158,7 +150,7 @@ def _test_pooling(name, cls):
 
         def forward(self, x):
             batch_size = x.size(0)
-            lens = torch.randint(1, self.max_len + 1, (batch_size, )).long()
+            lens = torch.randint(1, self.max_len + 1, (batch_size,)).long()
             mask = utils.mask(lens, self.max_len)
             x = self.in_linear(x).view(batch_size, self.max_len, -1)
             x = x.masked_fill(1 - mask.unsqueeze(-1), float("nan"))
@@ -177,7 +169,6 @@ def test_pooling():
 
 
 def _test_nonlinear(name, cls):
-
     class Model(torchmodels.Module):
 
         def __init__(self, in_dim, out_dim):

@@ -67,6 +67,7 @@ def dump_yaml(obj, stream=None):
             default_flow_style=False,
             indent=2
         )
+
     if stream is None:
         return dump(obj)
     elif isinstance(stream, str):

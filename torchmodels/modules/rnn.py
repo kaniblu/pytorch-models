@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.init as init
-import torch.nn.utils.rnn as R
+import torch.nn.utils.rnn as tr
 
 from .. import common
 from .. import utils
@@ -14,7 +14,6 @@ def init_rnn(cell, gain=1):
 
 
 class AbstractRNNCell(common.Module):
-
     r"""An abstract class for RNN cells. Must take an input vector sequence
     and (optionally) its lengths and return hidden outputs at all timesteps,
     and the final hidden state. All derived implementations must abstract away
@@ -41,8 +40,10 @@ class AbstractRNNCell(common.Module):
         >>> # `FooAttention` is a subclass of `AbstractAttention`
         >>> rnn = FooRNNCell(100, 200)
         >>> o, c, h = rnn(x)
-        >>> o.size(), c.size(), h.size()
-        torch.Size([16, 4, 200]), torch.Size([16, 4, 200]), torch.Size([16, 200])
+        >>> o.size(), c.size()
+        torch.Size([16, 4, 200]), torch.Size([16, 4, 200])
+        >>> h.size()
+        torch.Size([16, 200])
         >>> # the underlying implementation must support variable sequence
         >>> # lengths and initial hidden state
         >>> lens = torch.randint(4, 9, (16, ))
@@ -78,10 +79,10 @@ class BaseRNNCell(AbstractRNNCell):
             mask = utils.mask(lens, max_len)
             x = x.masked_fill(1 - mask.unsqueeze(-1), 0)
         if self.dynamic:
-            x = R.pack_padded_sequence(x, lens, True)
+            x = tr.pack_padded_sequence(x, lens, True)
         o, c, h = self.forward_cell(x, h)
         if self.dynamic:
-            o, _ = R.pad_packed_sequence(o, True, 0, max_len)
+            o, _ = tr.pad_packed_sequence(o, True, 0, max_len)
             o = o.contiguous()
         if lens is not None:
             o.masked_fill_(1 - mask.unsqueeze(-1), 0)
@@ -89,7 +90,6 @@ class BaseRNNCell(AbstractRNNCell):
 
 
 class LSTMCell(BaseRNNCell):
-
     name = "lstm-rnn"
 
     def __init__(self, *args, **kwargs):
@@ -117,7 +117,6 @@ class LSTMCell(BaseRNNCell):
 
 
 class BidirectionalLSTMCell(LSTMCell):
-
     name = "bilstm-rnn"
 
     @property
@@ -150,7 +149,6 @@ class BidirectionalLSTMCell(LSTMCell):
 
 
 class GRUCell(BaseRNNCell):
-
     name = "gru-rnn"
 
     def __init__(self, *args, **kwargs):
@@ -178,7 +176,6 @@ class GRUCell(BaseRNNCell):
 
 
 class BidirectionalGRUCell(GRUCell):
-
     name = "bigru-rnn"
 
     @property

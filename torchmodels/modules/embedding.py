@@ -1,8 +1,3 @@
-"""
-This package provides enhanced Embedding modules such as fine-tunable embeddings
-in which each embedding can be excluded or included in the gradient graph.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -12,6 +7,10 @@ from .. import common
 
 
 class AbstractEmbedding(common.Module):
+    r"""This module provides a basis for enhanced Embedding modules such as
+    fine-tunable embeddings in which each embedding can be excluded or
+    included in the gradient graph.
+    """
 
     def __init__(self, vocab_size, dim):
         super(AbstractEmbedding, self).__init__()
@@ -38,7 +37,6 @@ class TorchEmbedding(nn.Embedding):
 
 
 class SimpleEmbedding(AbstractEmbedding):
-
     name = "simple"
 
     def __init__(self, *args, allow_padding=False, **kwargs):
@@ -80,7 +78,6 @@ def index_map(x, idx):
 
 
 class FineTunableEmbedding(AbstractEmbedding):
-
     name = "fine-tunable"
 
     def __init__(self, *args, allow_padding=False, freeze=False,
@@ -140,7 +137,7 @@ class FineTunableEmbedding(AbstractEmbedding):
             return self.vocab_size
 
     def _create_frozen_map(self):
-        fmap = torch.zeros((self.num_embeddings, )).long()
+        fmap = torch.zeros((self.num_embeddings,)).long()
         fmap[list(self.frozen_idx)] = 1
         if self.allow_padding:
             fmap[self.pad_idx] = 1
@@ -149,8 +146,8 @@ class FineTunableEmbedding(AbstractEmbedding):
     def _create_idx_map(self):
         frozen_idx = list(enumerate(sorted(list(self.frozen_idx))))
         unfrozen_idx = list(enumerate(sorted(list(self.unfrozen_idx))))
-        idx = frozen_idx + unfrozen_idx + \
-              [(self.frozen_emb.pad_idx, self.pad_idx)]
+        idx = frozen_idx + unfrozen_idx
+        idx += [(self.frozen_emb.pad_idx, self.pad_idx)]
         idx.sort(key=lambda x: x[1])
         idx = [x[0] for x in idx]
         return torch.LongTensor(idx)

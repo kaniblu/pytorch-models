@@ -4,7 +4,6 @@ from .. import common
 
 
 class AbstractGaussianSampling(common.MultiModule):
-
     r"""An abstract class for Gaussian sampling modules.
     """
 
@@ -13,18 +12,17 @@ class AbstractGaussianSampling(common.MultiModule):
         self.in_dim = in_dim
         self.out_dim = out_dim
 
-    def forward_loss(self, x):
-        raise NotImplementedError()
+    def forward_multi(self, x):
+        raise NotImplementedError
 
     def mean(self, x):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def std(self, x):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class ReparamGaussianSampling(AbstractGaussianSampling):
-
     name = "reparameterized"
 
     def __init__(self, *args,

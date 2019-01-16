@@ -27,5 +27,10 @@ setup(
     platforms=[
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
+    ],
+    install_requires=[
+        "torch>=1",
+        "pyyaml",
+        "tqdm"
     ]
 )
