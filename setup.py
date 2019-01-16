@@ -1,11 +1,11 @@
 from setuptools import setup
 
-import torchmodels
+__VERSION__ = "0.2.0"
 
 
 setup(
     name="pytorch-models",
-    version=torchmodels.__version__,
+    version=__VERSION__,
     license="MIT",
     description="A thin wrapper for scriptable PyTorch modules",
     author="Kang Min Yoo",

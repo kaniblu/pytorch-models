@@ -1,5 +1,7 @@
 # A Management Tool for PyTorch Modules #
 
+![Build Status](https://travis-ci.com/kaniblu/pytorch-models.svg?branch=master)
+
 This library provides a thin wrapper for pytorch modules, allowing them to be 
 directly created from yaml/json specification files and thereby improving code
 readability/modularization. The library also comes with a few modules 
