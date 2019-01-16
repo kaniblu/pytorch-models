@@ -28,10 +28,8 @@ def resolve_obj(module, name):
 def mask(lens, max_len=None):
     if max_len is None:
         max_len = lens.max().item()
-    enum = torch.arange(0, max_len).long()
-    enum = enum.to(lens.device)
-    enum_exp = enum.unsqueeze(0)
-    return lens.unsqueeze(1) > enum_exp
+    enum = torch.arange(max_len).long().to(lens)
+    return lens.unsqueeze(1) > enum.unsqueeze(0)
 
 
 def load_yaml(path):

@@ -2,112 +2,214 @@ import os
 import random
 
 import torch
+import torch.nn as nn
 import torchmodels
 import torchmodels.manager
 from torchmodels.modules import rnn
 from torchmodels.modules import pooling
-from torchmodels.modules import embedding
+from torchmodels.modules import nonlinear
 from torchmodels.modules import activation
-from torchmodels.modules import gaussian
 from torchmodels.modules import attention
 
+from torchmodels import utils
 from . import custom_modules
-from .custom_modules import nonlinear
 from .custom_modules import mlp
+from .module_tester import ModuleTester
 
 
-BATCH_SIZE = 32
-HIDDEN_DIM = 100
-LEN_RANGE = (3, 10)
 YAML_PATHS = [
     os.path.join(os.path.dirname(__file__), "rnn.yml"),
     os.path.join(os.path.dirname(__file__), "mlp.yml")
 ]
 
 
-def ensure_correct(x):
-    if isinstance(x, (list, tuple)):
-        return all(ensure_correct(_x) for _x in x)
-    else:
-        assert isinstance(x, torch.Tensor) and \
-               (x != x).sum().item() == 0, "NaN detected"
+def _test_package(pkg, test_fn):
+    for name in torchmodels.manager.get_module_names(pkg):
+        test_fn(name, torchmodels.create_model_cls(pkg, name=name))
 
 
-def random_lengths(num_lengths, max_len):
-    return torch.randint(1, max_len + 1, (num_lengths, )).long()
+def _test_attention(name, cls):
+
+    class Model(torchmodels.Module):
+
+        num_qrys = 16
+        max_keys = 16
+
+        def __init__(self, in_dim, out_dim, hidden_dim=100):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+            self.hidden_dim = hidden_dim
+
+            self.qry_linear = nn.Linear(in_dim, hidden_dim * self.num_qrys)
+            self.key_linear = nn.Linear(in_dim, hidden_dim * self.max_keys)
+            self.att = cls(hidden_dim, hidden_dim)
+            self.out_linear = nn.Linear(hidden_dim * self.num_qrys, out_dim)
+
+        def forward(self, x):
+            batch_size = x.size(0)
+            qrys = self.qry_linear(x).view(batch_size, self.num_qrys, -1)
+            keys = self.key_linear(x).view(batch_size, self.max_keys, -1)
+            num_keys = torch.randint(1, self.max_keys + 1, (batch_size,)).long()
+            mask = utils.mask(num_keys, self.max_keys).byte()
+            keys = keys.masked_fill(1 - mask.unsqueeze(-1), float("nan"))
+
+            att = self.att(qrys, keys, num_keys)
+            return self.out_linear(att.view(batch_size, -1))
+
+        def __str__(self):
+            return repr(self)
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=300)
+    tester.test_backward()
+    tester.test_forward()
 
 
-def test_create_torchmodel_pooling():
-    model_creator = torchmodels.create_model_cls(torchmodels.modules.pooling)
-    model = model_creator(HIDDEN_DIM)
-    model.reset_parameters()
-    ret = model(
-        torch.randn(BATCH_SIZE, random.randint(*LEN_RANGE), HIDDEN_DIM),
-        random_lengths(BATCH_SIZE, LEN_RANGE[-1])
-    )
-    ensure_correct(ret)
+def test_attention():
+    _test_package(attention, _test_attention)
 
 
-def test_create_torchmodel_attention():
-    model_creator = torchmodels.create_model_cls(attention)
-    model = model_creator(HIDDEN_DIM, HIDDEN_DIM)
-    model.reset_parameters()
-    ret = model(
-        torch.randn(BATCH_SIZE, random.randint(*LEN_RANGE), HIDDEN_DIM),
-        torch.randn(BATCH_SIZE, random.randint(*LEN_RANGE), HIDDEN_DIM),
-        random_lengths(BATCH_SIZE, LEN_RANGE[-1])
-    )
-    ensure_correct(ret)
+def _test_activation(name, cls):
+
+    class Model(torchmodels.Module):
+
+        def __init__(self, in_dim, out_dim, hidden_dim=100):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+            self.hidden_dim = hidden_dim
+
+            self.sequential = torchmodels.Sequential(
+                nn.Linear(self.in_dim, hidden_dim),
+                cls(),
+                nn.Linear(self.hidden_dim, self.out_dim)
+            )
+
+        def forward(self, x):
+            return self.sequential(x)
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=300, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
 
 
-def test_create_torchmodel_activation():
-    model_creator = torchmodels.create_model_cls(torchmodels.modules.activation)
-    model = model_creator()
-    model.reset_parameters()
-    ret = model(torch.randn(BATCH_SIZE, random.randint(*LEN_RANGE), HIDDEN_DIM))
-    ensure_correct(ret)
+def test_activation():
+    _test_package(activation, _test_activation)
 
 
-def test_create_torchmodel_embedding():
-    model_creator = torchmodels.create_model_cls(torchmodels.modules.embedding)
-    model = model_creator(100, HIDDEN_DIM)
-    model.reset_parameters()
-    ret = model(torch.randint(0, 100, (BATCH_SIZE, )).long())
-    ensure_correct(ret)
+def _test_rnn(name, cls):
+
+    class Model(torchmodels.Module):
+
+        max_len = 8
+
+        def __init__(self, in_dim, out_dim, hidden_dim=100):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+            self.hidden_dim = hidden_dim
+
+            self.in_linear = nn.Linear(self.in_dim, self.max_len * hidden_dim)
+            self.rnn = cls(self.in_dim, self.hidden_dim)
+            self.out_linear = nn.Linear(
+                in_features=(self.max_len + 1) * self.hidden_dim,
+                out_features=self.out_dim
+            )
+
+        def forward(self, x):
+            batch_size, max_len = x.size(0), self.max_len
+            x = self.in_linear(x).view(batch_size, max_len, -1)
+            lens = torch.randint(1, max_len + 1, (batch_size, )).long()
+            lens = lens.to(x)
+            mask = utils.mask(lens, max_len)
+            x = x.masked_fill(1 - mask.unsqueeze(-1), float("nan"))
+            o, _, h = self.rnn(x, lens)
+            x = torch.cat([o.contiguous().view(batch_size, -1), h], 1)
+            return self.out_linear(x)
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=300, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
 
 
-def test_create_torchmodel_gaussian():
-    model_creator = torchmodels.create_model_cls(torchmodels.modules.gaussian)
-    model = model_creator(HIDDEN_DIM, HIDDEN_DIM)
-    model.enforce_unit = True
-    model.reset_parameters()
-    ret = model(torch.randn(BATCH_SIZE, HIDDEN_DIM))
-    ensure_correct(ret.get("pass"))
-    ensure_correct(ret.get("loss"))
+def test_rnn():
+    _test_package(rnn, _test_rnn)
 
 
-def test_create_default_nonlinear():
-    torchmodels.register_packages(custom_modules)
-    model_creator = torchmodels.create_model_cls(custom_modules.nonlinear)
-    model = model_creator(HIDDEN_DIM, HIDDEN_DIM)
-    model.reset_parameters()
-    ret = model(torch.randn(BATCH_SIZE, HIDDEN_DIM))
-    ensure_correct(ret)
+def _test_pooling(name, cls):
+
+    class Model(torchmodels.Module):
+
+        max_len = 8
+
+        def __init__(self, in_dim, out_dim):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+
+            self.in_linear = nn.Linear(self.in_dim, self.max_len * self.in_dim)
+            self.pool = cls(self.in_dim)
+            self.out_linear = nn.Linear(self.in_dim, self.out_dim)
+
+        def forward(self, x):
+            batch_size = x.size(0)
+            lens = torch.randint(1, self.max_len + 1, (batch_size, )).long()
+            mask = utils.mask(lens, self.max_len)
+            x = self.in_linear(x).view(batch_size, self.max_len, -1)
+            x = x.masked_fill(1 - mask.unsqueeze(-1), float("nan"))
+            return self.out_linear(self.pool(x, lens))
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=500, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
+
+
+def test_pooling():
+    _test_package(pooling, _test_pooling)
+
+
+def _test_nonlinear(name, cls):
+
+    class Model(torchmodels.Module):
+
+        def __init__(self, in_dim, out_dim):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+
+            self.nonlinear = cls(self.in_dim, self.in_dim)
+            self.out_linear = nn.Linear(self.in_dim, self.out_dim)
+
+        def forward(self, x):
+            return self.out_linear(self.nonlinear(x))
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=500, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
+
+
+def test_nonlinear():
+    _test_package(nonlinear, _test_nonlinear)
 
 
 def test_create_rnn_from_yaml():
-    torchmodels.register_packages(custom_modules)
-    model_creator = torchmodels.create_model_cls(torchmodels.modules.rnn, YAML_PATHS[0])
-    model = model_creator(HIDDEN_DIM, HIDDEN_DIM)
-    model.reset_parameters()
-    ret = model(torch.randn(BATCH_SIZE, random.randint(3, 10), HIDDEN_DIM))
-    ensure_correct(ret)
+    model_cls = torchmodels.create_model_cls(rnn, YAML_PATHS[0])
+    _test_rnn("yaml-loaded-rnn", model_cls)
 
 
 def test_create_mlp_from_yaml():
     torchmodels.register_packages(custom_modules)
-    model_creator = torchmodels.create_model_cls(mlp, YAML_PATHS[1])
-    model = model_creator(HIDDEN_DIM, HIDDEN_DIM)
-    model.reset_parameters()
-    ret = model(torch.randn(BATCH_SIZE, HIDDEN_DIM))
-    ensure_correct(ret)
+    model_cls = torchmodels.create_model_cls(mlp, YAML_PATHS[1])
+    tester = ModuleTester(model_cls, max_iter=300, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()

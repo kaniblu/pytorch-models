@@ -1,17 +1,12 @@
-"""
-This package contains an useful example of utilizing MultiModules. In models
-such as VAE. the Gaussian sampling unit neends to be trained as close to the
-unit Gaussian as possible. The KL-Divergence term can be passed on to the
-calling module using "yielding".
-"""
-
-
 import torch
 
 from .. import common
 
 
 class AbstractGaussianSampling(common.MultiModule):
+
+    r"""An abstract class for Gaussian sampling modules.
+    """
 
     def __init__(self, in_dim, out_dim):
         super(AbstractGaussianSampling, self).__init__()
@@ -30,7 +25,7 @@ class AbstractGaussianSampling(common.MultiModule):
 
 class ReparamGaussianSampling(AbstractGaussianSampling):
 
-    name = "reparam-gaussian-sampling"
+    name = "reparameterized"
 
     def __init__(self, *args,
                  enforce_unit=False,

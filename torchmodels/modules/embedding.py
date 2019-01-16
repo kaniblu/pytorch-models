@@ -37,12 +37,12 @@ class TorchEmbedding(nn.Embedding):
             self.weight.detach()[self.padding_idx].zero_()
 
 
-class BasicEmbedding(AbstractEmbedding):
+class SimpleEmbedding(AbstractEmbedding):
 
-    name = "basic-embedding"
+    name = "simple"
 
     def __init__(self, *args, allow_padding=False, **kwargs):
-        super(BasicEmbedding, self).__init__(*args, **kwargs)
+        super(SimpleEmbedding, self).__init__(*args, **kwargs)
         self.allow_padding = allow_padding
         if self.allow_padding:
             self.pad_idx = self.vocab_size
@@ -81,7 +81,7 @@ def index_map(x, idx):
 
 class FineTunableEmbedding(AbstractEmbedding):
 
-    name = "finetunable-embedding"
+    name = "fine-tunable"
 
     def __init__(self, *args, allow_padding=False, freeze=False,
                  frozen_idx=frozenset(), unfrozen_idx=frozenset(), **kwargs):
@@ -111,12 +111,12 @@ class FineTunableEmbedding(AbstractEmbedding):
             self.frozen_idx = all_idx - self.unfrozen_idx
         else:
             self.unfrozen_idx = all_idx - self.frozen_idx
-        self.frozen_emb = BasicEmbedding(
+        self.frozen_emb = SimpleEmbedding(
             vocab_size=len(self.frozen_idx),
             dim=self.dim,
             allow_padding=True
         )
-        self.unfrozen_emb = BasicEmbedding(
+        self.unfrozen_emb = SimpleEmbedding(
             vocab_size=len(self.unfrozen_idx),
             dim=self.dim,
             allow_padding=True

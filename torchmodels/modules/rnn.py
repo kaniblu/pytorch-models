@@ -3,6 +3,7 @@ import torch.nn.init as init
 import torch.nn.utils.rnn as R
 
 from .. import common
+from .. import utils
 
 
 def init_rnn(cell, gain=1):
@@ -14,18 +15,52 @@ def init_rnn(cell, gain=1):
 
 class AbstractRNNCell(common.Module):
 
+    r"""An abstract class for RNN cells. Must take an input vector sequence
+    and (optionally) its lengths and return hidden outputs at all timesteps,
+    and the final hidden state. All derived implementations must abstract away
+    the details of RNNs such as producing the final hidden state by
+    concatenating a set of bidirectional hidden states from the two ends.
+
+    Shape:
+        - Input:
+          - sequences: :math: `(N, K, H_{in})` FloatTensor
+          - lengths (optional): :math: `(N)` LongTensor
+          - initial hidden state (optional): :math: `(N, H_{hid})` FloatTensor
+        - Output:
+          - hidden states: :math: `(N, K, H_{hid})` FloatTensor
+          - cell states: :math: `(N, K, H_{hid])` FloatTensor
+          - final hidden state: :math: `(N, H_{hid})` FloatTensor
+
+    Minimum Args:
+        input_dim (int): Input dimensions
+        hidden_dim (int): Hidden state dimensions
+
+    Examples::
+
+        >>> x = torch.randn(16, 8, 100)
+        >>> # `FooAttention` is a subclass of `AbstractAttention`
+        >>> rnn = FooRNNCell(100, 200)
+        >>> o, c, h = rnn(x)
+        >>> o.size(), c.size(), h.size()
+        torch.Size([16, 4, 200]), torch.Size([16, 4, 200]), torch.Size([16, 200])
+        >>> # the underlying implementation must support variable sequence
+        >>> # lengths and initial hidden state
+        >>> lens = torch.randint(4, 9, (16, ))
+        >>> h0 = torch.randn(16, 200)
+        >>> o, c, h = rnn(x, lens, h0)
+
+    """
+
     def __init__(self, input_dim, hidden_dim):
         super(AbstractRNNCell, self).__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
 
-    def forward(self, x, lens):
+    def forward(self, x, lens=None, h=None):
         raise NotImplementedError()
 
 
 class BaseRNNCell(AbstractRNNCell):
-
-    """returns [batch_size, seq_len, hidden_dim]"""
 
     def __init__(self, *args, dynamic=False, layers=1, dropout=0, **kwargs):
         super(BaseRNNCell, self).__init__(*args, **kwargs)
@@ -37,23 +72,20 @@ class BaseRNNCell(AbstractRNNCell):
         raise NotImplementedError()
 
     def forward(self, x, lens=None, h=None):
-        """
-        :param x: [batch_size x seq_len x input_dim] Tensor
-        :param lens: [batch_size] LongTensor
-        :param h: [batch_size x hidden_dim] Tensor
-        :return: tuple of (
-            hidden_states: [batch_size x seq_len x hidden_dim] Tensor
-            cell_states: [batch_size x seq_len x hidden_dim] Tensor
-            final_state: [batch_size x hidden_dim] Tensor
-        )
-        """
         batch_size, max_len, _ = x.size()
+        mask = None
+        if lens is not None:
+            mask = utils.mask(lens, max_len)
+            x = x.masked_fill(1 - mask.unsqueeze(-1), 0)
         if self.dynamic:
             x = R.pack_padded_sequence(x, lens, True)
         o, c, h = self.forward_cell(x, h)
         if self.dynamic:
             o, _ = R.pad_packed_sequence(o, True, 0, max_len)
-        return o.contiguous(), c, h
+            o = o.contiguous()
+        if lens is not None:
+            o.masked_fill_(1 - mask.unsqueeze(-1), 0)
+        return o, c, h
 
 
 class LSTMCell(BaseRNNCell):

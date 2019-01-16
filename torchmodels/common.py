@@ -136,13 +136,19 @@ def nullable_add(a, b):
 
 
 class Module(nn.Module):
-    """The way you define your custom module is quite elegant.
-    The common painstaking part of building a custom module is that
-    module arguments could mean anything.
-    Using this elegant framework, positional arguments are only reserved for
-    model dimensions: arguments that affect the dimensions of input and output
-    tensors; while optional arguments are used as augmenting parameters that
-    could modify the behavior of the module."""
+
+    r"""A base module class for managing module parameters.
+
+    All module classes whose initializing parameters need to be managed must
+    inherit this class.
+    The rule of thumb is that positional arguments are only reserved for
+    abstract classes whose arguments must be bare minimum for defining forward
+    behavior; while optional keyword arguments are used for defining
+    implementation specific parameters. An example of such parameters would be
+    the number of layers to use in a feed forward network, as the number of
+    hidden layers does not affect the dimensions of input and output tensors.
+    """
+
     name = None
 
     def __init__(self, *args, **kwargs):
@@ -205,14 +211,42 @@ class Module(nn.Module):
 
 
 class MultiModule(Module):
-    """Multi-Module for Side-tracking Losses
 
-    This extension allows modules to create losses in addition to the standard
+    """A base class for implementing modules that return multiple values
+
+    This extension allows modules to generate losses in addition to the standard
     forward-returns. All modules will automatically cumulate loss items
     from their own children and return the total loss to their calling modules.
-    Ordinary modules cannot call AmbidextrousModule but the reverse is possible.
-    Implement `forward_multi` instead.
+    Ordinary modules cannot call MultiModule but the reverse is possible.
+    Implement `forward_multi` instead of the standard `forward` method.
+
+    Take a note of the following example:
+
+        import torch.nn as nn
+        from torchmodels import MultiModule
+
+
+        class RegularizedLinearModule(MultiModule):
+
+            def __init__(self, *args, **kwargs):
+                super(FooModule, self).__init__(*args, **kwargs)
+                self.linear = nn.Linear(100, 200)
+
+            def forward_multi(self, x):
+                yield "pass", self.linear(x)
+                # l2-norm loss
+                yield "loss", (self.linear.weight ** 2).sum()
+
+    Use generator syntax to generate different types of values (namely
+    "inference" and "auxiliary losses"). As seen in the example above, when
+    trying to return the forward pass results, yield a tuple of `"pass"` and
+    the forward pass results. When trying to return an auxiliary loss, yield
+    a tuple of `"loss"` and the scalar loss value. On `forward` call, the base
+    module class will aggregate of results of the same types from
+    `forward_multi` and return a `dict` containing the respective aggregated
+    values.
     """
+
     def invoke(self, module, *args):
         ret = module(*args)
         if isinstance(ret, dict):

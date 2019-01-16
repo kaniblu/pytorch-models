@@ -1,6 +1,5 @@
 import torchmodels
-
-from . import nonlinear
+from torchmodels.modules import nonlinear
 
 
 class AbstractMLP(torchmodels.Module):
@@ -19,7 +18,7 @@ class MLP(AbstractMLP):
     name = "mlp"
 
     def __init__(self, *args, hidden_dim=300, num_layers=2,
-                 nonlinear=nonlinear.AbstractNonlinear, **kwargs):
+                 nonlinear=nonlinear.SimpleNonlinear, **kwargs):
         super(MLP, self).__init__(*args, **kwargs)
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers

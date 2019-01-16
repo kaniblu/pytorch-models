@@ -1,4 +1,5 @@
-import torch.nn.functional as tf
+import torch
+import torch.nn as nn
 
 from .. import common
 
@@ -11,23 +12,23 @@ class AbstractActivation(common.Module):
 
 class ReluActivation(AbstractActivation):
 
-    name = "relu-activation"
+    name = "relu"
 
     def forward(self, x):
-        return tf.relu(x)
+        return torch.relu(x)
 
 
 class TanhActivation(AbstractActivation):
 
-    name = "tanh-activation"
+    name = "tanh"
 
     def forward(self, x):
-        return tf.tanh(x)
+        return torch.tanh(x)
 
 
-class SigmoidActivation(AbstractActivation)\
-        :
-    name = "sigmoid-activation"
+class SigmoidActivation(AbstractActivation):
+
+    name = "sigmoid"
 
     def forward(self, x):
-        return tf.sigmoid(x)
+        return torch.sigmoid(x)
