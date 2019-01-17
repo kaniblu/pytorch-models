@@ -9,6 +9,8 @@ from torchmodels.modules import pooling
 from torchmodels.modules import nonlinear
 from torchmodels.modules import activation
 from torchmodels.modules import attention
+from torchmodels.modules import feedforward
+from torchmodels.modules import relational
 
 from torchmodels import utils
 from . import custom_modules
@@ -191,6 +193,65 @@ def _test_nonlinear(name, cls):
 
 def test_nonlinear():
     _test_package(nonlinear, _test_nonlinear)
+
+
+def _test_feedforward(name, cls):
+    class Model(torchmodels.Module):
+
+        def __init__(self, in_dim, out_dim):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+
+            self.feedforward = cls(self.in_dim, self.in_dim, self.in_dim)
+            self.out_linear = nn.Linear(self.in_dim, self.out_dim)
+
+        def forward(self, x):
+            return self.out_linear(self.feedforward(x))
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=500, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
+
+
+def test_feedforward():
+    _test_package(feedforward, _test_feedforward)
+
+
+def _test_relational(name, cls):
+    class Model(torchmodels.Module):
+
+        num_keys = 4
+
+        def __init__(self, in_dim, out_dim, hidden_dim=50):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+            self.hidden_dim = hidden_dim
+
+            self.q_linear = nn.Linear(self.in_dim, self.hidden_dim)
+            self.k_linear = nn.Linear(self.in_dim, self.num_keys * hidden_dim)
+            self.rn = cls(self.hidden_dim, self.hidden_dim, self.hidden_dim)
+            self.out_linear = nn.Linear(self.hidden_dim, self.out_dim)
+
+        def forward(self, x):
+            batch_size = x.size(0)
+            qrys = self.q_linear(x)
+            keys = self.k_linear(x).view(batch_size, self.num_keys, -1)
+            lens = torch.randint(1, self.num_keys + 1, (batch_size, )).long()
+            return self.out_linear(self.rn(qrys, keys, lens))
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=500, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
+
+
+def test_relational():
+    _test_package(relational, _test_relational)
 
 
 def test_create_rnn_from_yaml():
