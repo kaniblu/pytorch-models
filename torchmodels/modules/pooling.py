@@ -60,6 +60,16 @@ class SumPooling(AbstractPooling):
         return x.sum(1)
 
 
+class ProdPooling(AbstractPooling):
+    name = "prod"
+
+    def forward(self, x, lens=None):
+        if lens is not None:
+            mask = utils.mask(lens, x.size(1))
+            x = x.masked_fill(1 - mask.unsqueeze(-1), 1)
+        return x.prod(1)
+
+
 class MeanPooling(AbstractPooling):
     name = "mean"
 
