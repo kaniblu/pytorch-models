@@ -38,12 +38,10 @@ class RelationalNetwork(AbstractRelationalNetwork):
 
         self.relational_mlp = self.relational_mlp_cls(
             input_dim=self.qry_dim + self.key_dim * 2,
-            hidden_dim=self.hidden_dim,
             output_dim=self.hidden_dim
         )
         self.output_mlp = self.output_mlp_cls(
             input_dim=self.hidden_dim,
-            hidden_dim=self.hidden_dim,
             output_dim=self.out_dim
         )
         self.pooling = self.pooling_cls(self.hidden_dim)

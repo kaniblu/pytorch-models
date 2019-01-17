@@ -6,10 +6,9 @@ from . import activation
 
 class AbstractFeedForward(common.Module):
 
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_dim, output_dim):
         super(AbstractFeedForward, self).__init__()
         self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
         self.output_dim = output_dim
 
     def forward(self, h):
@@ -19,11 +18,15 @@ class AbstractFeedForward(common.Module):
 class MultiLayerFeedForward(AbstractFeedForward):
     name = "multilayer"
 
-    def __init__(self, *args, num_layers=1,
+    def __init__(self, *args,
+                 num_layers=1,
+                 hidden_dim=300,
                  activation=activation.ReluActivation,
-                 dropout=0.0, batch_norm=False, **kwargs):
+                 dropout=0.0,
+                 batch_norm=False, **kwargs):
         super(MultiLayerFeedForward, self).__init__(*args, **kwargs)
         self.num_layers = num_layers
+        self.hidden_dim = hidden_dim
         self.activation_cls = activation
         self.dropout_prob = dropout
         self.should_dropout = dropout > 0.0
