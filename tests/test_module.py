@@ -202,7 +202,7 @@ def _test_feedforward(name, cls):
             super(Model, self).__init__()
             self.in_dim, self.out_dim = in_dim, out_dim
 
-            self.feedforward = cls(self.in_dim, self.in_dim, self.in_dim)
+            self.feedforward = cls(self.in_dim, self.in_dim)
             self.out_linear = nn.Linear(self.in_dim, self.out_dim)
 
         def forward(self, x):
