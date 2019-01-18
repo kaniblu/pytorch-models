@@ -82,8 +82,6 @@ class BaseRNN(AbstractRNN):
         if self.dynamic:
             o, _ = tr.pad_packed_sequence(o, True, 0, max_len)
             o = o.contiguous()
-        if lens is not None:
-            o.masked_fill_(1 - mask.unsqueeze(-1), 0)
         return o, c, h
 
 
