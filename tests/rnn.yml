@@ -1,4 +1,4 @@
-type: bilstm-rnn
+type: bilstm
 vargs:
   dropout: 0
   dynamic: false

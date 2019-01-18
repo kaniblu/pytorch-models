@@ -13,8 +13,8 @@ def init_rnn(cell, gain=1):
             init.orthogonal_(hh[i:i + cell.hidden_size], gain=gain)
 
 
-class AbstractRNNCell(common.Module):
-    r"""An abstract class for RNN cells. Must take an input vector sequence
+class AbstractRNN(common.Module):
+    r"""An abstract class for RNN modules. Must take an input vector sequence
     and (optionally) its lengths and return hidden outputs at all timesteps,
     and the final hidden state. All derived implementations must abstract away
     the details of RNNs such as producing the final hidden state by
@@ -27,7 +27,7 @@ class AbstractRNNCell(common.Module):
           - initial hidden state (optional): :math: `(N, H_{hid})` FloatTensor
         - Output:
           - hidden states: :math: `(N, K, H_{hid})` FloatTensor
-          - cell states: :math: `(N, K, H_{hid])` FloatTensor
+          - final cell state: :math: `(N, H_{hid])` FloatTensor
           - final hidden state: :math: `(N, H_{hid})` FloatTensor
 
     Minimum Args:
@@ -37,13 +37,11 @@ class AbstractRNNCell(common.Module):
     Examples::
 
         >>> x = torch.randn(16, 8, 100)
-        >>> # `FooAttention` is a subclass of `AbstractAttention`
-        >>> rnn = FooRNNCell(100, 200)
+        >>> # `FooRNN` is a subclass of `AbstractRNN`
+        >>> rnn = FooRNN(100, 200)
         >>> o, c, h = rnn(x)
-        >>> o.size(), c.size()
-        torch.Size([16, 4, 200]), torch.Size([16, 4, 200])
-        >>> h.size()
-        torch.Size([16, 200])
+        >>> o.size(), c.size(), h.size()
+        torch.Size([16, 4, 200]), torch.Size([16, 200]), torch.Size([16, 200])
         >>> # the underlying implementation must support variable sequence
         >>> # lengths and initial hidden state
         >>> lens = torch.randint(4, 9, (16, ))
@@ -53,7 +51,7 @@ class AbstractRNNCell(common.Module):
     """
 
     def __init__(self, input_dim, hidden_dim):
-        super(AbstractRNNCell, self).__init__()
+        super(AbstractRNN, self).__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
 
@@ -61,10 +59,10 @@ class AbstractRNNCell(common.Module):
         raise NotImplementedError()
 
 
-class BaseRNNCell(AbstractRNNCell):
+class BaseRNN(AbstractRNN):
 
     def __init__(self, *args, dynamic=False, layers=1, dropout=0, **kwargs):
-        super(BaseRNNCell, self).__init__(*args, **kwargs)
+        super(BaseRNN, self).__init__(*args, **kwargs)
         self.dynamic = dynamic
         self.layers = layers
         self.dropout = dropout
@@ -89,11 +87,11 @@ class BaseRNNCell(AbstractRNNCell):
         return o, c, h
 
 
-class LSTMCell(BaseRNNCell):
-    name = "lstm-rnn"
+class LSTM(BaseRNN):
+    name = "lstm"
 
     def __init__(self, *args, **kwargs):
-        super(LSTMCell, self).__init__(*args, **kwargs)
+        super(LSTM, self).__init__(*args, **kwargs)
         self.lstm = nn.LSTM(**self._lstm_kwargs())
 
     def _lstm_kwargs(self):
@@ -107,17 +105,18 @@ class LSTMCell(BaseRNNCell):
         )
 
     def forward_cell(self, x, h0):
-        o, c = self.lstm(x, h0)
-        h = c[0].permute(1, 0, 2).contiguous()
-        return o, c, h[:, -1]
+        o, (h, c) = self.lstm(x, h0)
+        h = h.permute(1, 0, 2).contiguous()
+        c = c.permute(1, 0, 2).contiguous()
+        return o, c[:, -1], h[:, -1]
 
     def reset_parameters(self, gain=1):
         self.lstm.reset_parameters()
         init_rnn(self.lstm, gain)
 
 
-class BidirectionalLSTMCell(LSTMCell):
-    name = "bilstm-rnn"
+class BidirectionalLSTM(LSTM):
+    name = "bilstm"
 
     @property
     def cell_hidden_dim(self):
@@ -136,23 +135,22 @@ class BidirectionalLSTMCell(LSTMCell):
             batch_first=True
         )
 
-    @property
-    def output_dim(self):
-        return self.hidden_dim * 2
-
     def forward_cell(self, x, h0):
-        o, c = self.lstm(x, h0)
-        h = c[0].permute(1, 0, 2).contiguous()
-        h = h.view(-1, self.layers, 2, self.cell_hidden_dim)
+        o, (h, c) = self.lstm(x, h0)
+        h = h.view(self.layers, 2, -1, self.cell_hidden_dim)
+        h = h.permute(2, 0, 1, 3).contiguous()
+        c = c.view(self.layers, 2, -1, self.cell_hidden_dim)
+        c = c.permute(2, 0, 1, 3).contiguous()
         h = h[:, -1].view(-1, self.hidden_dim)
+        c = c[:, -1].view(-1, self.hidden_dim)
         return o, c, h
 
 
-class GRUCell(BaseRNNCell):
-    name = "gru-rnn"
+class GRU(BaseRNN):
+    name = "gru"
 
     def __init__(self, *args, **kwargs):
-        super(GRUCell, self).__init__(*args, **kwargs)
+        super(GRU, self).__init__(*args, **kwargs)
         self.gru = nn.GRU(**self._gru_kwargs())
 
     def _gru_kwargs(self):
@@ -168,15 +166,15 @@ class GRUCell(BaseRNNCell):
     def forward_cell(self, x, h0):
         o, h = self.gru(x, h0)
         h = h.permute(1, 0, 2).contiguous()
-        return o, h, h[:, -1]
+        return o, h[:, -1], h[:, -1]
 
     def reset_parameters(self, gain=1):
         self.gru.reset_parameters()
         init_rnn(self.gru, gain)
 
 
-class BidirectionalGRUCell(GRUCell):
-    name = "bigru-rnn"
+class BidirectionalGRU(GRU):
+    name = "bigru"
 
     @property
     def cell_hidden_dim(self):
@@ -196,8 +194,8 @@ class BidirectionalGRUCell(GRUCell):
         )
 
     def forward_cell(self, x, h0):
-        o, c = self.gru(x, h0)
-        h = c.permute(1, 0, 2).contiguous()
-        h = h.view(-1, self.layers, 2, self.cell_hidden_dim)
-        h = h[:, -1].view(-1, self.hidden_dim)
-        return o, c, h
+        o, h = self.gru(x, h0)
+        h = h.view(self.layers, 2, -1, self.cell_hidden_dim)
+        h = h.permute(2, 0, 1, 3).contiguous()
+        h = h.view(-1, self.layers, self.hidden_dim)
+        return o, h[:, -1], h[:, -1]
