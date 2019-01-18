@@ -7,6 +7,7 @@ import torchmodels.manager
 from torchmodels.modules import rnn
 from torchmodels.modules import pooling
 from torchmodels.modules import nonlinear
+from torchmodels.modules import embedding
 from torchmodels.modules import activation
 from torchmodels.modules import attention
 from torchmodels.modules import feedforward
@@ -222,7 +223,6 @@ def test_feedforward():
 
 def _test_relational(name, cls):
     class Model(torchmodels.Module):
-
         num_keys = 4
 
         def __init__(self, in_dim, out_dim, hidden_dim=50):
@@ -239,7 +239,7 @@ def _test_relational(name, cls):
             batch_size = x.size(0)
             qrys = self.q_linear(x)
             keys = self.k_linear(x).view(batch_size, self.num_keys, -1)
-            lens = torch.randint(1, self.num_keys + 1, (batch_size, )).long()
+            lens = torch.randint(1, self.num_keys + 1, (batch_size,)).long()
             return self.out_linear(self.rn(qrys, keys, lens))
 
         def __repr__(self):
@@ -252,6 +252,42 @@ def _test_relational(name, cls):
 
 def test_relational():
     _test_package(relational, _test_relational)
+
+
+def _test_embedding(name, cls):
+    class Model(torchmodels.Module):
+
+        num_words = 10
+
+        def __init__(self, in_dim, out_dim, hidden_dim=100):
+            super(Model, self).__init__()
+            self.in_dim, self.out_dim = in_dim, out_dim
+            self.hidden_dim = hidden_dim
+
+            self.emb = cls(self.num_words, self.hidden_dim)
+            self.pool = torchmodels.Linear(
+                in_features=self.hidden_dim * 3,
+                out_features=self.hidden_dim
+            )
+            self.in_linear = torchmodels.Linear(self.in_dim, self.hidden_dim)
+            self.out_linear = torchmodels.Linear(self.hidden_dim, self.out_dim)
+
+        def forward(self, x):
+            batch_size = x.size(0)
+            idx = torch.randint(0, self.num_words, (batch_size, 3))
+            g = torch.sigmoid(self.pool(self.emb(idx).view(batch_size, -1)))
+            return self.out_linear(self.in_linear(x) * g)
+
+        def __repr__(self):
+            return f"<Module Encapsulating '{name}'>"
+
+    tester = ModuleTester(Model, max_iter=500, pass_threshold=0.5)
+    tester.test_backward()
+    tester.test_forward()
+
+
+def test_embedding():
+    _test_package(embedding, _test_embedding)
 
 
 def test_create_rnn_from_yaml():

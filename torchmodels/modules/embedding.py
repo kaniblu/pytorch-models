@@ -7,10 +7,6 @@ from .. import common
 
 
 class AbstractEmbedding(common.Module):
-    r"""This module provides a basis for enhanced Embedding modules such as
-    fine-tunable embeddings in which each embedding can be excluded or
-    included in the gradient graph.
-    """
 
     def __init__(self, vocab_size, dim):
         super(AbstractEmbedding, self).__init__()
