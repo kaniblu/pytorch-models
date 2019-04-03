@@ -1,5 +1,5 @@
 type: mlp
 vargs:
-  hidden_dim: 300
+  hidden_dims: [100, 200, 300]
   nonlinear: gated-tanh
   num_layers: 3

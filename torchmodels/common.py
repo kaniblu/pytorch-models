@@ -90,6 +90,9 @@ class InitializerCreator(object):
         self.kwargs = self.cls.process_argdict(kwargs)
         return self.initialize
 
+    def __repr__(self):
+        return f"<InitializerCreator for Modules in '{self.pkg}'>"
+
 
 def is_module_cls(x):
     return inspect.isclass(x) and issubclass(x, Module)
