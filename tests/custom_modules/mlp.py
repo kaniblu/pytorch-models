@@ -1,5 +1,6 @@
 import torchmodels
 from torchmodels.modules import nonlinear
+from torchmodels.modules import activation
 
 
 class AbstractMLP(torchmodels.Module):
@@ -16,15 +17,19 @@ class AbstractMLP(torchmodels.Module):
 class MLP(AbstractMLP):
     name = "mlp"
 
-    def __init__(self, *args, hidden_dims=(200, 100), num_layers=2,
-                 nonlinear=nonlinear.SimpleNonlinear, **kwargs):
+    def __init__(self, *args, hidden_dims=(200, 100),
+                 activations=(activation.ReluActivation,
+                              activation.ReluActivation),
+                 num_layers=2, nonlinear=nonlinear.SimpleNonlinear, **kwargs):
         super(MLP, self).__init__(*args, **kwargs)
         self.hidden_dims = hidden_dims
+        self.activations_cls = activations
         self.num_layers = num_layers
         self.nonlinear_cls = nonlinear
 
         assert len(self.hidden_dims) == self.num_layers
 
+        self.activations = [cls() for cls in self.activations_cls]
         linear = torchmodels.Linear
         self.input_layer = linear(self.input_dim, self.hidden_dims[0])
         self.hidden_layers = torchmodels.Sequential(

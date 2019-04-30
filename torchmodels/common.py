@@ -1,3 +1,4 @@
+import copy
 import types
 import logging
 import inspect
@@ -126,7 +127,7 @@ class OptionalArgument(object):
                 values = [value]
             else:
                 values = value
-            return [self.caster(value) for value in values]
+            return [copy.copy(self.caster)(value) for value in values]
         else:
             return self.caster(value)
 

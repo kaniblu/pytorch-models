@@ -298,6 +298,12 @@ def test_create_rnn_from_yaml():
 def test_create_mlp_from_yaml():
     torchmodels.register_packages(custom_modules)
     model_cls = torchmodels.create_model_cls(mlp, YAML_PATHS[1])
+    model = model_cls(10, 20)
+    assert (model.hidden_dims[0] == 100 and
+            model.hidden_dims[1] == 200 and
+            model.hidden_dims[2] == 300)
+    assert (model.activations[0].name == "relu" and
+            model.activations[1].name == "tanh")
     tester = ModuleTester(model_cls, max_iter=300, pass_threshold=0.5)
     tester.test_backward()
     tester.test_forward()
