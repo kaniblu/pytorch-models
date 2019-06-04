@@ -34,7 +34,7 @@ def mask(lens, max_len=None):
 
 def load_yaml(path):
     with open(path, "r") as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
 
 
 def unkval_error(name=None, val=None, choices=None):

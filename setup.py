@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__VERSION__ = "0.2.7"
+__VERSION__ = "0.2.8"
 
 
 setup(
